@@ -943,6 +943,10 @@ const EventHandlers = {
 
         // Re-render events list
         UIRenderer.renderEvents();
+        
+        // Update calendar and dashboard
+        DashboardManager.update();
+        CalendarManager.render();
 
         // Focus back to title input for better UX
         UIRenderer.elements.eventTitle.focus();
@@ -964,6 +968,8 @@ const EventHandlers = {
                 );
             }
             UIRenderer.renderEvents();
+            DashboardManager.update();
+            CalendarManager.render();
         }
     },
 
@@ -1232,20 +1238,42 @@ const CalendarManager = {
         for (let i = 1; i <= daysInMonth; i++) {
             const day = document.createElement('div');
             day.className = 'calendar-day';
-            day.textContent = i;
             
             const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             
             // Check if today
-            if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
+            const isToday = year === today.getFullYear() && month === today.getMonth() && i === today.getDate();
+            if (isToday) {
                 day.classList.add('today');
             }
             
             // Check if has event
-            if (eventsByDate[dateString]) {
+            const dayEvents = eventsByDate[dateString];
+            if (dayEvents && dayEvents.length > 0) {
                 day.classList.add('has-event');
-                day.title = eventsByDate[dateString].map(e => e.title).join(', ');
+                
+                // Create day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'calendar-day-number';
+                dayNumber.textContent = i;
+                day.appendChild(dayNumber);
+                
+                // Create event indicator
+                const eventIndicator = document.createElement('div');
+                eventIndicator.className = 'calendar-event-indicator';
+                eventIndicator.textContent = dayEvents.length;
+                eventIndicator.title = dayEvents.map(e => e.title).join('\n');
+                day.appendChild(eventIndicator);
+            } else {
+                day.textContent = i;
             }
+            
+            // Add click handler to show events for that day
+            day.addEventListener('click', () => {
+                if (dayEvents && dayEvents.length > 0) {
+                    this.showDayEvents(dateString, dayEvents);
+                }
+            });
             
             grid.appendChild(day);
         }
@@ -1258,6 +1286,69 @@ const CalendarManager = {
             day.textContent = i;
             grid.appendChild(day);
         }
+    },
+    
+    showDayEvents(dateString, events) {
+        const formattedDate = DateUtils.formatDateLong(dateString);
+        
+        let eventsList = events.map(event => `
+            <div style="padding: 10px; background: var(--color-bg-secondary); border-radius: 8px; margin-bottom: 8px;">
+                <strong>${UIRenderer.escapeHtml(event.title)}</strong><br>
+                <small style="color: var(--color-text-secondary);">${event.description || 'No description'}</small>
+            </div>
+        `).join('');
+        
+        const message = `
+            <div style="max-height: 300px; overflow-y: auto;">
+                <h3 style="margin-bottom: 15px;">${formattedDate}</h3>
+                <div style="margin-bottom: 10px;">
+                    <strong>${events.length} event(s) on this day:</strong>
+                </div>
+                ${eventsList}
+            </div>
+        `;
+        
+        // Create modal or alert
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 10000;
+            max-width: 500px;
+            width: 90%;
+        `;
+        
+        modal.innerHTML = message + `
+            <button onclick="this.parentElement.remove(); document.getElementById('modalOverlay').remove()" 
+                    style="margin-top: 15px; padding: 10px 20px; background: var(--color-primary); color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                Close
+            </button>
+        `;
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'modalOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+        `;
+        overlay.onclick = () => {
+            modal.remove();
+            overlay.remove();
+        };
+        
+        document.body.appendChild(overlay);
+        document.body.appendChild(modal);
     }
 };
 
