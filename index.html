@@ -28,9 +28,111 @@
             </button>
             <h1>Event Reminder</h1>
             <p class="subtitle">Never miss important events and deadlines</p>
+            
+            <!-- Navigation Tabs -->
+            <nav class="tab-navigation">
+                <button class="tab-btn active" data-tab="dashboard">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    Dashboard
+                </button>
+                <button class="tab-btn" data-tab="events">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Events
+                </button>
+                <button class="tab-btn" data-tab="calendar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Calendar
+                </button>
+                <button class="tab-btn" data-tab="categories">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                    </svg>
+                    Categories
+                </button>
+                <button class="tab-btn" data-tab="settings">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.364-6.364l-4.243 4.243m-6.122 6.121l-4.243 4.243m12.728 0l-4.243-4.243m-6.122-6.121L3.636 3.636"></path>
+                    </svg>
+                    Settings
+                </button>
+            </nav>
         </header>
 
         <main>
+            <!-- Dashboard Tab -->
+            <div class="tab-content active" id="dashboard-tab">
+                <section class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #667eea;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="totalEvents">0</span>
+                            <span class="stat-label">Total Events</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #f093fb;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="upcomingEvents">0</span>
+                            <span class="stat-label">Upcoming</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #4facfe;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="todayEvents">0</span>
+                            <span class="stat-label">Today</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #fa709a;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="pastEvents">0</span>
+                            <span class="stat-label">Completed</span>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="quick-overview">
+                    <h2>Quick Overview</h2>
+                    <div id="dashboardEventsList" class="dashboard-events"></div>
+                </section>
+            </div>
+
+            <!-- Events Tab -->
+            <div class="tab-content" id="events-tab">
             <!-- Add Event Form -->
             <section class="add-event-section" aria-label="Add new event">
                 <h2>Add New Event</h2>
@@ -108,6 +210,119 @@
                 <!-- Events List Container -->
                 <div id="eventsList" class="events-list" role="list"></div>
             </section>
+            </div>
+
+            <!-- Calendar Tab -->
+            <div class="tab-content" id="calendar-tab">
+                <section class="calendar-section">
+                    <div class="calendar-header">
+                        <button id="prevMonth" class="calendar-nav-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <h2 id="calendarMonthYear">January 2026</h2>
+                        <button id="nextMonth" class="calendar-nav-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </section>
+            </div>
+
+            <!-- Categories Tab -->
+            <div class="tab-content" id="categories-tab">
+                <section class="categories-section">
+                    <h2>Event Categories</h2>
+                    <div class="category-form">
+                        <input type="text" id="newCategory" placeholder="Add new category..." maxlength="30">
+                        <input type="color" id="categoryColor" value="#667eea">
+                        <button id="addCategoryBtn" class="btn btn-primary">Add Category</button>
+                    </div>
+                    <div id="categoriesList" class="categories-list"></div>
+                    
+                    <h2 style="margin-top: 30px;">Filter Events by Category</h2>
+                    <div id="categoryFilters" class="category-filters"></div>
+                </section>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settings-tab">
+                <section class="settings-section">
+                    <h2>Settings</h2>
+                    
+                    <div class="settings-group">
+                        <h3>Notifications</h3>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="emailNotifications" checked>
+                                <span>Email Notifications</span>
+                            </label>
+                            <p class="setting-description">Receive email alerts when events are added and on event dates</p>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <span>Email Address</span>
+                                <input type="email" id="notificationEmail" value="gunjabhatt122006@gmail.com" class="setting-input">
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="browserNotifications">
+                                <span>Browser Notifications</span>
+                            </label>
+                            <p class="setting-description">Show desktop notifications for upcoming events</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Display</h3>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="compactView">
+                                <span>Compact View</span>
+                            </label>
+                            <p class="setting-description">Show events in a more compact layout</p>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <span>Default View</span>
+                                <select id="defaultView" class="setting-input">
+                                    <option value="dashboard">Dashboard</option>
+                                    <option value="events">Events</option>
+                                    <option value="calendar">Calendar</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Data Management</h3>
+                        <div class="setting-item">
+                            <button id="exportData" class="btn btn-secondary">Export Events (JSON)</button>
+                            <p class="setting-description">Download all your events as a JSON file</p>
+                        </div>
+                        <div class="setting-item">
+                            <button id="importData" class="btn btn-secondary">Import Events</button>
+                            <input type="file" id="importFile" accept=".json" style="display: none;">
+                            <p class="setting-description">Import events from a JSON file</p>
+                        </div>
+                        <div class="setting-item">
+                            <button id="clearAllData" class="btn btn-delete">Clear All Data</button>
+                            <p class="setting-description">Delete all events and reset the app</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>About</h3>
+                        <p class="about-text">Event Reminder Tool v2.0</p>
+                        <p class="about-text">Enhanced with email notifications, calendar view, and categories</p>
+                        <p class="about-text">© 2026 Event Reminder. All rights reserved.</p>
+                    </div>
+                </section>
+            </div>
         </main>
 
     </div>

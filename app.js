@@ -1116,3 +1116,508 @@ if (document.readyState === 'loading') {
 
 // Expose EventHandlers to global scope for inline event handlers
 window.EventHandlers = EventHandlers;
+// ===========================
+// Tab Management
+// ===========================
+
+const TabManager = {
+    currentTab: 'dashboard',
+
+    init() {
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+        });
+        
+        // Load saved tab preference
+        const savedTab = localStorage.getItem('eventReminder_currentTab');
+        if (savedTab) {
+            this.switchTab(savedTab);
+        }
+    },
+
+    switchTab(tabName) {
+        this.currentTab = tabName;
+        
+        // Update buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+        
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === `${tabName}-tab`);
+        });
+        
+        // Save preference
+        localStorage.setItem('eventReminder_currentTab', tabName);
+        
+        // Refresh content for specific tabs
+        if (tabName === 'dashboard') {
+            DashboardManager.update();
+        } else if (tabName === 'calendar') {
+            CalendarManager.render();
+        } else if (tabName === 'categories') {
+            CategoryManager.render();
+        }
+    }
+};
+
+// ===========================
+// Dashboard Manager
+// ===========================
+
+const DashboardManager = {
+    update() {
+        const events = StateManager.getSortedEvents();
+        const today = DateUtils.getToday();
+        
+        // Calculate stats
+        const total = events.length;
+        const upcoming = events.filter(e => DateUtils.isUpcoming(e.date)).length;
+        const todayEvents = events.filter(e => DateUtils.isToday(e.date)).length;
+        const past = events.filter(e => DateUtils.isPast(e.date)).length;
+        
+        // Update stat cards
+        document.getElementById('totalEvents').textContent = total;
+        document.getElementById('upcomingEvents').textContent = upcoming;
+        document.getElementById('todayEvents').textContent = todayEvents;
+        document.getElementById('pastEvents').textContent = past;
+        
+        // Render upcoming events list
+        const dashboardList = document.getElementById('dashboardEventsList');
+        const upcomingEvents = events.filter(e => !DateUtils.isPast(e.date)).slice(0, 5);
+        
+        if (upcomingEvents.length === 0) {
+            dashboardList.innerHTML = '<p style="color: var(--color-text-secondary);">No upcoming events</p>';
+            return;
+        }
+        
+        dashboardList.innerHTML = upcomingEvents.map(event => {
+            const status = DateUtils.getEventStatus(event.date);
+            const badgeColors = {
+                today: 'background: #fef3c7; color: #92400e;',
+                upcoming: 'background: #dbeafe; color: #1e40af;',
+                future: 'background: #f3f4f6; color: #374151;'
+            };
+            
+            return `
+                <div class="dashboard-event-item">
+                    <div class="dashboard-event-info">
+                        <h4>${UIRenderer.escapeHtml(event.title)}</h4>
+                        <p>${DateUtils.formatDateRelative(event.date)}</p>
+                    </div>
+                    <span class="dashboard-event-badge" style="${badgeColors[status]}">
+                        ${status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                </div>
+            `;
+        }).join('');
+    }
+};
+
+// ===========================
+// Calendar Manager
+// ===========================
+
+const CalendarManager = {
+    currentDate: new Date(),
+
+    init() {
+        document.getElementById('prevMonth')?.addEventListener('click', () => this.changeMonth(-1));
+        document.getElementById('nextMonth')?.addEventListener('click', () => this.changeMonth(1));
+        this.render();
+    },
+
+    changeMonth(delta) {
+        this.currentDate.setMonth(this.currentDate.getMonth() + delta);
+        this.render();
+    },
+
+    render() {
+        const year = this.currentDate.getFullYear();
+        const month = this.currentDate.getMonth();
+        
+        // Update header
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
+        
+        // Get calendar data
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+        
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        
+        // Day headers
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayNames.forEach(day => {
+            const header = document.createElement('div');
+            header.className = 'calendar-day-header';
+            header.textContent = day;
+            grid.appendChild(header);
+        });
+        
+        // Get events
+        const events = StateManager.getSortedEvents();
+        const eventsByDate = {};
+        events.forEach(event => {
+            if (!eventsByDate[event.date]) {
+                eventsByDate[event.date] = [];
+            }
+            eventsByDate[event.date].push(event);
+        });
+        
+        // Previous month days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const day = document.createElement('div');
+            day.className = 'calendar-day other-month';
+            day.textContent = daysInPrevMonth - i;
+            grid.appendChild(day);
+        }
+        
+        // Current month days
+        const today = new Date();
+        for (let i = 1; i <= daysInMonth; i++) {
+            const day = document.createElement('div');
+            day.className = 'calendar-day';
+            day.textContent = i;
+            
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            
+            // Check if today
+            if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
+                day.classList.add('today');
+            }
+            
+            // Check if has event
+            if (eventsByDate[dateString]) {
+                day.classList.add('has-event');
+                day.title = eventsByDate[dateString].map(e => e.title).join(', ');
+            }
+            
+            grid.appendChild(day);
+        }
+        
+        // Next month days
+        const remainingDays = 42 - (firstDay + daysInMonth);
+        for (let i = 1; i <= remainingDays; i++) {
+            const day = document.createElement('div');
+            day.className = 'calendar-day other-month';
+            day.textContent = i;
+            grid.appendChild(day);
+        }
+    }
+};
+
+// ===========================
+// Category Manager
+// ===========================
+
+const CategoryManager = {
+    STORAGE_KEY: 'eventReminder_categories',
+    categories: [],
+
+    init() {
+        this.loadCategories();
+        
+        document.getElementById('addCategoryBtn')?.addEventListener('click', () => this.addCategory());
+        document.getElementById('newCategory')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addCategory();
+        });
+    },
+
+    loadCategories() {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        this.categories = stored ? JSON.parse(stored) : [
+            { id: 'work', name: 'Work', color: '#667eea' },
+            { id: 'personal', name: 'Personal', color: '#f093fb' },
+            { id: 'family', name: 'Family', color: '#4facfe' }
+        ];
+    },
+
+    saveCategories() {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.categories));
+    },
+
+    addCategory() {
+        const input = document.getElementById('newCategory');
+        const colorInput = document.getElementById('categoryColor');
+        const name = input.value.trim();
+        
+        if (!name) return;
+        
+        const newCategory = {
+            id: `cat_${Date.now()}`,
+            name: name,
+            color: colorInput.value
+        };
+        
+        this.categories.push(newCategory);
+        this.saveCategories();
+        this.render();
+        
+        input.value = '';
+    },
+
+    deleteCategory(id) {
+        this.categories = this.categories.filter(cat => cat.id !== id);
+        this.saveCategories();
+        this.render();
+    },
+
+    render() {
+        const list = document.getElementById('categoriesList');
+        if (!list) return;
+        
+        list.innerHTML = this.categories.map(cat => `
+            <div class="category-item" style="border-left-color: ${cat.color}">
+                <div class="category-info">
+                    <span class="category-color-dot" style="background: ${cat.color}"></span>
+                    <span class="category-name">${cat.name}</span>
+                </div>
+                <button class="btn btn-delete" onclick="CategoryManager.deleteCategory('${cat.id}')" style="padding: 4px 8px; font-size: 12px;">
+                    Delete
+                </button>
+            </div>
+        `).join('');
+        
+        // Render filters
+        const filters = document.getElementById('categoryFilters');
+        if (filters) {
+            filters.innerHTML = `
+                <button class="category-filter-btn active" onclick="CategoryManager.filterByCategory(null)">All</button>
+                ${this.categories.map(cat => `
+                    <button class="category-filter-btn" onclick="CategoryManager.filterByCategory('${cat.id}')">
+                        ${cat.name}
+                    </button>
+                `).join('')}
+            `;
+        }
+    },
+
+    filterByCategory(categoryId) {
+        // Update active button
+        document.querySelectorAll('.category-filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // For now, just log - you can implement filtering in events tab
+        console.log('Filter by category:', categoryId);
+    }
+};
+
+// ===========================
+// Settings Manager
+// ===========================
+
+const SettingsManager = {
+    init() {
+        // Email notifications toggle
+        document.getElementById('emailNotifications')?.addEventListener('change', (e) => {
+            localStorage.setItem('emailNotifications', e.target.checked);
+        });
+        
+        // Notification email
+        document.getElementById('notificationEmail')?.addEventListener('change', (e) => {
+            EmailService.RECIPIENT_EMAIL = e.target.value;
+            localStorage.setItem('notificationEmail', e.target.value);
+        });
+        
+        // Browser notifications
+        document.getElementById('browserNotifications')?.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.requestNotificationPermission();
+            }
+        });
+        
+        // Compact view
+        document.getElementById('compactView')?.addEventListener('change', (e) => {
+            document.body.classList.toggle('compact-view', e.target.checked);
+            localStorage.setItem('compactView', e.target.checked);
+        });
+        
+        // Export data
+        document.getElementById('exportData')?.addEventListener('click', () => this.exportData());
+        
+        // Import data
+        document.getElementById('importData')?.addEventListener('click', () => {
+            document.getElementById('importFile').click();
+        });
+        
+        document.getElementById('importFile')?.addEventListener('change', (e) => {
+            this.importData(e.target.files[0]);
+        });
+        
+        // Clear all data
+        document.getElementById('clearAllData')?.addEventListener('click', () => this.clearAllData());
+        
+        // Load saved settings
+        this.loadSettings();
+    },
+
+    loadSettings() {
+        const emailEnabled = localStorage.getItem('emailNotifications') !== 'false';
+        const compactView = localStorage.getItem('compactView') === 'true';
+        const savedEmail = localStorage.getItem('notificationEmail');
+        
+        if (document.getElementById('emailNotifications')) {
+            document.getElementById('emailNotifications').checked = emailEnabled;
+        }
+        
+        if (document.getElementById('compactView')) {
+            document.getElementById('compactView').checked = compactView;
+            document.body.classList.toggle('compact-view', compactView);
+        }
+        
+        if (savedEmail && document.getElementById('notificationEmail')) {
+            document.getElementById('notificationEmail').value = savedEmail;
+            EmailService.RECIPIENT_EMAIL = savedEmail;
+        }
+    },
+
+    async requestNotificationPermission() {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                new Notification('Event Reminder', {
+                    body: 'Notifications enabled! You will receive alerts for your events.',
+                    icon: '📅'
+                });
+            }
+        }
+    },
+
+    exportData() {
+        const data = {
+            events: StateManager.events,
+            categories: CategoryManager.categories,
+            exportDate: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `event-reminder-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        NotificationManager.success('Export Successful', 'Your data has been exported');
+    },
+
+    importData(file) {
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                if (data.events) {
+                    StateManager.events = data.events;
+                    StateManager.saveToStorage();
+                }
+                
+                if (data.categories) {
+                    CategoryManager.categories = data.categories;
+                    CategoryManager.saveCategories();
+                }
+                
+                // Refresh UI
+                UIRenderer.renderEvents();
+                DashboardManager.update();
+                CategoryManager.render();
+                
+                NotificationManager.success('Import Successful', `Imported ${data.events.length} events`);
+            } catch (error) {
+                NotificationManager.error('Import Failed', 'Invalid file format');
+            }
+        };
+        reader.readAsText(file);
+    },
+
+    clearAllData() {
+        if (confirm('Are you sure you want to delete ALL events and data? This cannot be undone!')) {
+            localStorage.clear();
+            StateManager.events = [];
+            CategoryManager.categories = [];
+            UIRenderer.renderEvents();
+            DashboardManager.update();
+            CategoryManager.render();
+            NotificationManager.success('Data Cleared', 'All data has been deleted');
+        }
+    }
+};
+
+// Update initApp to initialize new managers
+function initAppEnhanced() {
+    // Initialize theme
+    ThemeManager.init();
+
+    // Initialize email service
+    EmailService.init();
+
+    // Initialize state
+    StateManager.init();
+
+    // Initialize UI
+    UIRenderer.init();
+
+    // Initialize new managers
+    TabManager.init();
+    DashboardManager.update();
+    CalendarManager.init();
+    CategoryManager.init();
+    CategoryManager.render();
+    SettingsManager.init();
+
+    // Render initial events
+    UIRenderer.renderEvents();
+
+    // Start countdown timer
+    CountdownManager.start();
+
+    // Check for event reminders on load
+    EmailService.checkAndSendReminders();
+
+    // Set up periodic reminder checks (check every hour)
+    setInterval(() => {
+        EmailService.checkAndSendReminders();
+    }, 60 * 60 * 1000);
+
+    // Attach event listeners
+    UIRenderer.elements.eventForm.addEventListener('submit', EventHandlers.handleSubmit);
+    UIRenderer.elements.eventDescription.addEventListener('input', EventHandlers.handleDescriptionInput);
+    
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => ThemeManager.toggle());
+    }
+
+    // Initialize character count
+    UIRenderer.updateCharCount();
+
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            CountdownManager.stop();
+        } else {
+            CountdownManager.start();
+        }
+    });
+
+    // Log initialization
+    console.log('Event Reminder Tool v2.0 initialized successfully');
+}
+
+// Override initApp with enhanced version
+window.initApp = initAppEnhanced;
+
+// Re-initialize if already loaded
+if (document.readyState !== 'loading') {
+    initAppEnhanced();
+}
