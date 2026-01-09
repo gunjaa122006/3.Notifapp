@@ -1048,74 +1048,9 @@ const CountdownManager = {
     }
 };
 
-// ===========================
-// Application Initialization
-// ===========================
-
-/**
- * Initialize the application
- */
-function initApp() {
-    // Initialize theme
-    ThemeManager.init();
-
-    // Initialize email service
-    EmailService.init();
-
-    // Initialize state
-    StateManager.init();
-
-    // Initialize UI
-    UIRenderer.init();
-
-    // Render initial events
-    UIRenderer.renderEvents();
-
-    // Start countdown timer
-    CountdownManager.start();
-
-    // Check for event reminders on load
-    EmailService.checkAndSendReminders();
-
-    // Set up periodic reminder checks (check every hour)
-    setInterval(() => {
-        EmailService.checkAndSendReminders();
-    }, 60 * 60 * 1000); // Check every 60 minutes
-
-    // Attach event listeners
-    UIRenderer.elements.eventForm.addEventListener('submit', EventHandlers.handleSubmit);
-    UIRenderer.elements.eventDescription.addEventListener('input', EventHandlers.handleDescriptionInput);
-    
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => ThemeManager.toggle());
-    }
-
-    // Initialize character count
-    UIRenderer.updateCharCount();
-
-    // Handle page visibility changes (pause countdowns when tab is hidden)
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            CountdownManager.stop();
-        } else {
-            CountdownManager.start();
-        }
-    });
-
-    // Log initialization
-    console.log('Event Reminder Tool initialized successfully');
-}
-
-// Start application when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
-
 // Expose EventHandlers to global scope for inline event handlers
 window.EventHandlers = EventHandlers;
+
 // ===========================
 // Tab Management
 // ===========================
@@ -1124,19 +1059,31 @@ const TabManager = {
     currentTab: 'dashboard',
 
     init() {
+        console.log('TabManager initializing...');
         const tabButtons = document.querySelectorAll('.tab-btn');
+        console.log('Found tab buttons:', tabButtons.length);
+        
         tabButtons.forEach(btn => {
-            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tabName = btn.dataset.tab;
+                console.log('Tab clicked:', tabName);
+                this.switchTab(tabName);
+            });
         });
         
         // Load saved tab preference
         const savedTab = localStorage.getItem('eventReminder_currentTab');
         if (savedTab) {
+            console.log('Loading saved tab:', savedTab);
             this.switchTab(savedTab);
+        } else {
+            console.log('No saved tab, using dashboard');
         }
     },
 
     switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
         this.currentTab = tabName;
         
         // Update buttons
@@ -1146,7 +1093,9 @@ const TabManager = {
         
         // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.toggle('active', content.id === `${tabName}-tab`);
+            const isActive = content.id === `${tabName}-tab`;
+            content.classList.toggle('active', isActive);
+            console.log(`${content.id} active:`, isActive);
         });
         
         // Save preference
@@ -1554,7 +1503,7 @@ const SettingsManager = {
 };
 
 // Update initApp to initialize new managers
-function initAppEnhanced() {
+function initApp() {
     // Initialize theme
     ThemeManager.init();
 
@@ -1614,10 +1563,9 @@ function initAppEnhanced() {
     console.log('Event Reminder Tool v2.0 initialized successfully');
 }
 
-// Override initApp with enhanced version
-window.initApp = initAppEnhanced;
-
-// Re-initialize if already loaded
-if (document.readyState !== 'loading') {
-    initAppEnhanced();
+// Start application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
 }
