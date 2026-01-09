@@ -1,0 +1,22 @@
+{
+  "name": "event-reminder-tool",
+  "version": "2.0.0",
+  "description": "Advanced event reminder application with email notifications, calendar view, and categories",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test-server.js"
+  },
+  "keywords": [
+    "reminder",
+    "events",
+    "calendar",
+    "notifications"
+  ],
+  "author": "gunjaa122006",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
