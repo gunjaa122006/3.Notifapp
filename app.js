@@ -55,6 +55,178 @@ const ThemeManager = {
 };
 
 // ===========================
+// Email Service
+// ===========================
+
+/**
+ * Email service manager using EmailJS
+ * Sends notifications when events are added or when events occur
+ */
+const EmailService = {
+    // EmailJS Configuration
+    // You need to set up a free account at https://www.emailjs.com/
+    // and replace these with your actual credentials
+    SERVICE_ID: 'service_fn4woi6',  // Replace with your EmailJS service ID
+    TEMPLATE_ID_NEW_EVENT: 'template_vk9bqqt',  // Replace with your template ID for new events
+    TEMPLATE_ID_REMINDER: 'template_54dvjbj',  // Replace with your template ID for reminders
+    PUBLIC_KEY: '2Ln0CgKlxEsOB0SzA',  // Replace with your EmailJS public key
+    RECIPIENT_EMAIL: 'gunjabhatt122006@gmail.com',
+
+    /**
+     * Initialize EmailJS
+     */
+    init() {
+        if (typeof emailjs !== 'undefined') {
+            try {
+                emailjs.init(this.PUBLIC_KEY);
+                console.log('✅ EmailJS initialized successfully');
+                console.log('Service ID:', this.SERVICE_ID);
+                console.log('Public Key:', this.PUBLIC_KEY.substring(0, 5) + '...');
+                console.log('Recipient:', this.RECIPIENT_EMAIL);
+                return true;
+            } catch (error) {
+                console.error('❌ EmailJS initialization failed:', error);
+                return false;
+            }
+        } else {
+            console.error('❌ EmailJS library not loaded!');
+            console.error('Please check:');
+            console.error('1. Internet connection is active');
+            console.error('2. CDN is not blocked by firewall/antivirus');
+            console.error('3. Browser console for network errors');
+            return false;
+        }
+    },
+
+    /**
+     * Send email notification when a new event is added
+     */
+    async sendNewEventNotification(eventData) {
+        console.log('Attempting to send email for new event:', eventData);
+        
+        if (typeof emailjs === 'undefined') {
+            console.error('EmailJS library not loaded. Make sure the script is included in HTML.');
+            return false;
+        }
+
+        try {
+            // Format date manually if DateUtils not available yet
+            let formattedDate = eventData.date;
+            if (typeof DateUtils !== 'undefined' && DateUtils.formatDateLong) {
+                formattedDate = DateUtils.formatDateLong(eventData.date);
+            } else {
+                // Fallback formatting
+                const date = new Date(eventData.date + 'T00:00:00');
+                formattedDate = date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            const templateParams = {
+                to_email: this.RECIPIENT_EMAIL,
+                event_title: eventData.title,
+                event_date: formattedDate,
+                event_description: eventData.description || 'No description provided',
+                notification_type: 'New Event Added'
+            };
+
+            console.log('Sending email with params:', templateParams);
+
+            const response = await emailjs.send(
+                this.SERVICE_ID,
+                this.TEMPLATE_ID_NEW_EVENT,
+                templateParams
+            );
+
+            console.log('✅ New event email sent successfully:', response);
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to send new event email:', error);
+            console.error('Error details:', error.text || error.message);
+            return false;
+        }
+    },
+
+    /**
+     * Send reminder email when event time arrives
+     */
+    async sendEventReminder(eventData) {
+        console.log('Attempting to send reminder for event:', eventData);
+        
+        if (typeof emailjs === 'undefined') {
+            console.error('EmailJS library not loaded. Make sure the script is included in HTML.');
+            return false;
+        }
+
+        try {
+            // Format date manually if DateUtils not available yet
+            let formattedDate = eventData.date;
+            if (typeof DateUtils !== 'undefined' && DateUtils.formatDateLong) {
+                formattedDate = DateUtils.formatDateLong(eventData.date);
+            } else {
+                // Fallback formatting
+                const date = new Date(eventData.date + 'T00:00:00');
+                formattedDate = date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+
+            const templateParams = {
+                to_email: this.RECIPIENT_EMAIL,
+                event_title: eventData.title,
+                event_date: formattedDate,
+                event_description: eventData.description || 'No description provided',
+                notification_type: 'Event Reminder'
+            };
+
+            console.log('Sending reminder email with params:', templateParams);
+
+            const response = await emailjs.send(
+                this.SERVICE_ID,
+                this.TEMPLATE_ID_REMINDER,
+                templateParams
+            );
+
+            console.log('✅ Event reminder email sent successfully:', response);
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to send reminder email:', error);
+            console.error('Error details:', error.text || error.message);
+            return false;
+        }
+    },
+
+    /**
+     * Check and send reminders for events happening today
+     */
+    checkAndSendReminders() {
+        const events = StateManager.getSortedEvents();
+        const today = DateUtils.getToday();
+
+        events.forEach(event => {
+            const eventDate = DateUtils.parseDate(event.date);
+            
+            // Check if event is today and hasn't been reminded yet
+            if (DateUtils.isToday(event.date)) {
+                // Check if we've already sent a reminder for this event today
+                const reminderKey = `reminder_sent_${event.id}_${today.toISOString().split('T')[0]}`;
+                const reminderSent = localStorage.getItem(reminderKey);
+
+                if (!reminderSent) {
+                    this.sendEventReminder(event);
+                    // Mark reminder as sent
+                    localStorage.setItem(reminderKey, 'true');
+                }
+            }
+        });
+    }
+};
+
+// ===========================
 // State Management
 // ===========================
 
@@ -745,7 +917,20 @@ const EventHandlers = {
             UIRenderer.resetToAddMode();
         } else {
             // Add new event
-            StateManager.addEvent(formData);
+            const newEvent = StateManager.addEvent(formData);
+            
+            // Send email notification for new event
+            EmailService.sendNewEventNotification(newEvent)
+                .then(success => {
+                    if (success) {
+                        console.log('✅ Email notification sent successfully');
+                    } else {
+                        console.warn('⚠️ Email notification failed to send');
+                    }
+                })
+                .catch(error => {
+                    console.error('⚠️ Email notification error:', error);
+                });
             
             NotificationManager.success(
                 'Event Added!',
@@ -874,6 +1059,9 @@ function initApp() {
     // Initialize theme
     ThemeManager.init();
 
+    // Initialize email service
+    EmailService.init();
+
     // Initialize state
     StateManager.init();
 
@@ -885,6 +1073,14 @@ function initApp() {
 
     // Start countdown timer
     CountdownManager.start();
+
+    // Check for event reminders on load
+    EmailService.checkAndSendReminders();
+
+    // Set up periodic reminder checks (check every hour)
+    setInterval(() => {
+        EmailService.checkAndSendReminders();
+    }, 60 * 60 * 1000); // Check every 60 minutes
 
     // Attach event listeners
     UIRenderer.elements.eventForm.addEventListener('submit', EventHandlers.handleSubmit);

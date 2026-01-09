@@ -112,6 +112,26 @@
 
     </div>
 
+    <!-- EmailJS Library - Load before app.js -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    
+    <!-- Alternative CDN if above fails -->
+    <script>
+        // Check if EmailJS loaded, if not try alternative CDN
+        if (typeof emailjs === 'undefined') {
+            console.warn('Primary EmailJS CDN failed, trying alternative...');
+            var script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+            script.onerror = function() {
+                console.error('EmailJS failed to load from both CDNs. Email functionality will not work.');
+                console.error('Please check your internet connection or try downloading EmailJS locally.');
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('EmailJS library loaded successfully');
+        }
+    </script>
+    
     <script src="app.js"></script>
 </body>
 </html>
